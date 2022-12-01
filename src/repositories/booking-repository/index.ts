@@ -10,7 +10,7 @@ async function findBookingWithUserId(userId: number) {
 }
 
 async function findManyBookingsWithRoomId(roomId: number) {
-  return prisma.booking.findFirst({
+  return prisma.booking.findMany({
     where: {
       roomId,
     },

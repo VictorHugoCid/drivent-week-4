@@ -26,8 +26,12 @@ export async function postReservation(req: AuthenticatedRequest, res: Response) 
     const bookingId = booking.id;
     return res.status(httpStatus.OK).send({ bookingId });
   } catch (error) {
+    console.log("ó o erro aqui", error.name);
     if (error.name === "notFoundError") {
       return res.sendStatus(httpStatus.NOT_FOUND);
+    }
+    if (error.name === "noVacancyError") {
+      return res.sendStatus(httpStatus.FORBIDDEN);
     }
     return res.sendStatus(httpStatus.FORBIDDEN);
   }
@@ -41,11 +45,15 @@ export async function updateReservation(req: AuthenticatedRequest, res: Response
     const bookingId = booking.id;
     return res.status(httpStatus.OK).send({ bookingId });
   } catch (error) {
+    // console.log("Ó O ERRO AQUI", error.name);
     if (error.name === "notFoundError") {
       return res.sendStatus(httpStatus.NOT_FOUND);
     }
-    if (error.name === "paymentRequired") {
+    if (error.name === "paymentRequiredError") {
       return res.sendStatus(httpStatus.PAYMENT_REQUIRED);
+    }
+    if (error.name === "noVacancyError") {
+      return res.sendStatus(httpStatus.FORBIDDEN);
     }
     return res.sendStatus(httpStatus.FORBIDDEN);
   }
