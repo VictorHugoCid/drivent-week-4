@@ -9,11 +9,12 @@ async function findBookingWithUserId(userId: number) {
   });
 }
 
-async function findManyBookingsWithRoomId(roomId: number) {
-  return prisma.booking.findMany({
+async function findFirstBookingsWithRoomId(roomId: number) {
+  return prisma.booking.findFirst({
     where: {
       roomId,
     },
+    include: { Room: true },
   });
 }
 
@@ -25,9 +26,10 @@ async function insertBooking(userId: number, roomId: number) {
     },
   });
 }
+
 const bookingRepository = {
   findBookingWithUserId,
-  findManyBookingsWithRoomId,
+  findFirstBookingsWithRoomId,
   insertBooking,
 };
 

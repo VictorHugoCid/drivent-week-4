@@ -25,6 +25,26 @@ async function postBooking(userId: number, roomId: number) {
     throw notFoundError;
   }
 
+  const enrollment = await enrollmentRepository.findWithAddressByUserId(userId);
+
+  if (!enrollment) {
+    throw notFoundError;
+  }
+
+  const ticket = await ticketRepository.findTicketByEnrollmentId(enrollment.id);
+
+  if (!ticket) {
+    throw notFoundError;
+  }
+
+  if (ticket.TicketType.isRemote || !ticket.TicketType.includesHotel) {
+    throw cannotListHotelsError;
+  }
+
+  if (ticket.status === TicketStatus.RESERVED) {
+    throw paymentRequiredError;
+  }
+
   const verifyRoom = await roomsRepository.findRoomById(roomId);
 
   if (verifyRoom.capacity === 0) {
@@ -46,37 +66,30 @@ async function updateBooking(userId: number, roomId: number) {
   if (!roomId) {
     throw notFoundError;
   }
-  const enrollment = await enrollmentRepository.findWithAddressByUserId(userId);
 
-  if (!enrollment) {
+  const booking = await bookingRepository.findBookingWithUserId(userId);
+  if (!booking) {
     throw notFoundError;
   }
 
-  const ticket = await ticketRepository.findTicketByEnrollmentId(enrollment.id);
+  const newBooking = await bookingRepository.findFirstBookingsWithRoomId(roomId);
 
-  if (!ticket) {
-    throw notFoundError;
-  }
-
-  if (ticket.TicketType.isRemote || !ticket.TicketType.includesHotel) {
-    throw cannotListHotelsError;
-  }
-
-  if (ticket.status === TicketStatus.RESERVED) {
-    throw paymentRequiredError;
-  }
-
-  const bookings = await bookingRepository.findManyBookingsWithRoomId(roomId);
-
-  if (bookings.length === 3) {
+  if (newBooking.Room.capacity === 0) {
     throw noVacancyError;
   }
-  if (!bookings) {
-    throw notFoundError;
-  }
 
-  const booking = bookingRepository.findBookingWithUserId(userId);
-  return booking;
+  // update old Room
+  const newCapacityOldRoom = booking.Room.capacity + 1;
+  const roomIdOldBooking = booking.Room.id;
+
+  const oldRoomUpdated = await roomsRepository.updateRoom(roomIdOldBooking, newCapacityOldRoom);
+
+  // newBooking
+  //  update na room
+  const newRoomCapacity = newBooking.Room.capacity - 1;
+  const newRoomUpdated = await roomsRepository.updateRoom(roomId, newRoomCapacity);
+
+  return newBooking;
 }
 
 const bookingService = {
