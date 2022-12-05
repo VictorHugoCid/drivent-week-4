@@ -1,4 +1,5 @@
 import app, { init } from "@/app";
+import { prisma } from "@/config";
 import faker from "@faker-js/faker";
 import { TicketStatus } from "@prisma/client";
 import httpStatus from "http-status";
@@ -204,6 +205,19 @@ describe("POST /booking", () => {
       expect(response.status).toBe(httpStatus.FORBIDDEN);
     });
 
+    it("should respond with status 403 if valid roomId - partição inválida - valor limite min - 1", async () => {
+      const user = await createUser();
+      const token = await generateValidToken(user);
+
+      const hotel = await createHotel();
+      const room = await createRoomWithHotelId(hotel.id);
+
+      const body = { roomId: 0 };
+
+      const response = await server.post("/booking").set("Authorization", `Bearer ${token}`).send(body);
+      expect(response.status).toBe(httpStatus.FORBIDDEN);
+    });
+
     it("should respond with status 200 and bookingId", async () => {
       const user = await createUser();
       const token = await generateValidToken(user);
@@ -218,7 +232,13 @@ describe("POST /booking", () => {
 
       const response = await server.post("/booking").set("Authorization", `Bearer ${token}`).send(body);
 
+      const insertedBooking = await prisma.booking.findFirst({
+        where: {
+          roomId: room.id,
+        },
+      });
       expect(response.status).toBe(httpStatus.OK);
+      expect(insertedBooking.roomId).toBe(room.id);
       expect(response.body).toEqual({
         bookingId: expect.any(Number),
       });
@@ -288,7 +308,20 @@ describe("PUT booking/:bookingId", () => {
 
       const body = { roomId: room.id };
 
-      const response = await server.put(`/booking/${2222}`).set("Authorization", `Bearer ${token}`).send(body);
+      const response = await server.put(`/booking/${booking.id}`).set("Authorization", `Bearer ${token}`).send(body);
+      expect(response.status).toBe(httpStatus.FORBIDDEN);
+    });
+    it("should respond with status 403 if valid roomId - partição inválida - valor limite min - 1", async () => {
+      const user = await createUser();
+      const token = await generateValidToken(user);
+
+      const hotel = await createHotel();
+      const room = await createRoomWithHotelId(hotel.id);
+      const booking = await createBooking(user.id, room.id);
+
+      const body = { roomId: 0 };
+
+      const response = await server.put(`/booking/${booking.id}`).set("Authorization", `Bearer ${token}`).send(body);
       expect(response.status).toBe(httpStatus.FORBIDDEN);
     });
     it("should respond with status 200 and bookingId", async () => {
@@ -302,8 +335,21 @@ describe("PUT booking/:bookingId", () => {
 
       const body = { roomId: room.id };
 
-      const response = await server.put(`/booking/${2222}`).set("Authorization", `Bearer ${token}`).send(body);
+      const insertedBooking = await prisma.booking.findFirst({
+        where: {
+          roomId: room.id,
+        },
+        include: {
+          Room: true,
+        },
+      });
+
+      const response = await server.put(`/booking/${booking.id}`).set("Authorization", `Bearer ${token}`).send(body);
       expect(response.status).toBe(httpStatus.OK);
+      expect(insertedBooking.roomId).toBe(room.id);
+      expect(response.body).toEqual({
+        bookingId: expect.any(Number),
+      });
     });
   });
 });

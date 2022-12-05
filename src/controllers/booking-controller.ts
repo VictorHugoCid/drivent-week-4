@@ -35,26 +35,29 @@ export async function postReservation(req: AuthenticatedRequest, res: Response) 
     if (error.name === "paymentRequiredError") {
       return res.sendStatus(httpStatus.PAYMENT_REQUIRED);
     }
+    if (error.name === "invalidValueError") {
+      return res.sendStatus(httpStatus.FORBIDDEN);
+    }
 
     return res.sendStatus(httpStatus.FORBIDDEN);
   }
 }
 
 export async function updateReservation(req: AuthenticatedRequest, res: Response) {
-  const { userId } = req;
   const { roomId } = req.body;
+  const { bookingId } = req.params;
   try {
-    const booking = await bookingService.updateBooking(userId, roomId);
-    const bookingId = booking.id;
-    return res.status(httpStatus.OK).send({ bookingId });
+    const booking = await bookingService.updateBooking(roomId, Number(bookingId));
+    const newBookingId = booking.id;
+    return res.status(httpStatus.OK).send({ bookingId: newBookingId });
   } catch (error) {
     if (error.name === "notFoundError") {
       return res.sendStatus(httpStatus.NOT_FOUND);
     }
-    if (error.name === "paymentRequiredError") {
-      return res.sendStatus(httpStatus.PAYMENT_REQUIRED);
-    }
     if (error.name === "noVacancyError") {
+      return res.sendStatus(httpStatus.FORBIDDEN);
+    }
+    if (error.name === "invalidValueError") {
       return res.sendStatus(httpStatus.FORBIDDEN);
     }
     return res.sendStatus(httpStatus.FORBIDDEN);

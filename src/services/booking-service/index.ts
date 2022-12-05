@@ -5,6 +5,7 @@ import enrollmentRepository from "@/repositories/enrollment-repository";
 import { cannotListHotelsError } from "@/errors/cannot-list-hotels-error";
 import { TicketStatus } from "@prisma/client";
 import roomsRepository from "@/repositories/room-repository";
+import { limitValueError } from "@/errors/limit-value-error";
 
 async function getBooking(userId: number) {
   const searchBooking = await bookingRepository.findBookingWithUserId(userId);
@@ -21,8 +22,12 @@ async function getBooking(userId: number) {
 }
 
 async function postBooking(userId: number, roomId: number) {
-  if (!roomId) {
+  if (!roomId && roomId !== 0) {
     throw notFoundError;
+  }
+
+  if (roomId < 1) {
+    throw limitValueError;
   }
 
   const enrollment = await enrollmentRepository.findWithAddressByUserId(userId);
@@ -62,12 +67,17 @@ async function postBooking(userId: number, roomId: number) {
   return newBooking;
 }
 
-async function updateBooking(userId: number, roomId: number) {
-  if (!roomId) {
+async function updateBooking( roomId: number, bookingId: number) {
+  if (!roomId && roomId !== 0) {
     throw notFoundError;
   }
 
-  const booking = await bookingRepository.findBookingWithUserId(userId);
+  if (roomId < 1) {
+    throw limitValueError;
+  }
+
+  const booking = await bookingRepository.findBookingById(bookingId);
+
   if (!booking) {
     throw notFoundError;
   }
